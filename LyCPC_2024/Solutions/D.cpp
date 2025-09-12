@@ -8,15 +8,13 @@ void solve()
     int n;
     cin >> n;
 
-    if (n < 1)
-        return;
-
-    vector<int> input(n);
+    vector<long long> input(n);
 
     for (int i = 0; i < n; i++)
         cin >> input[i];
 
-    int output ,index;
+    long long output; 
+    int index;
     output = index = 0;
 
     int before = input[0];
@@ -25,13 +23,14 @@ void solve()
     {
         if (num > before)
         {
-            output += ++index;
+            ++index;
         }
         else
         {
             index = 1;
-            output += index;
         }
+
+        output += index;
 
         before = num;
     }

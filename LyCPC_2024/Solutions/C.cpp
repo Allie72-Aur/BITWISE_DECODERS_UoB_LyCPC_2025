@@ -7,7 +7,8 @@ void solve()
     string input;    
     cin >> input;
     
-    int output ,index;
+    long long output;
+    int index;
     output = index = 0;
 
     for (auto c : input)
