@@ -6,10 +6,10 @@
 #include <map>
 
 /**
- * @file solution_e.cpp
+ * @file solution_h.cpp
  * @date 2025-09-13
  * @author Allie Phenish (alliephenish@gmail.com)
- * @brief Solution to a problem on the expected cost of a random string chain.
+ * @brief Solution to Problem H "Nile's Flowing Currents" of the ACPC 2024
  * @details 
  * # Problem Description
  * We are given $n$ strings and a chain is formed by arranging them in a random permutation.
@@ -53,6 +53,20 @@ const int MOD = 1e9 + 7;
 const int MAX_LEN = 2e6 + 5; // Sum of lengths + N separators
 const int MAX_STATES = 2 * MAX_LEN;
 
+/**
+ * @brief Suffix Automaton Node Structure
+ * 
+ * The Node struct represents a single state in the Generalized Suffix Automaton (GSA).
+ * Each state encodes information about a set of substrings that appear in the input strings.
+ * 
+ * - `len`: The length of the longest substring represented by this state.
+ * - `link`: The suffix link, pointing to the state representing the largest proper suffix of the current substring.
+ * - `next`: A map from characters to the next state, representing transitions for each possible character.
+ * 
+ * The automaton is built incrementally as we process each character of the input strings.
+ * The Node struct is essential for efficiently storing and traversing the automaton, allowing us to
+ * quickly answer substring queries and compute overlap lengths between strings.
+ */
 struct Node {
     int len, link;
     std::map<char, int> next;
@@ -61,6 +75,11 @@ struct Node {
 Node state[MAX_STATES];
 int sz, last;
 
+/**
+ * @brief Initializes the Generalized Suffix Automaton.
+ * * Sets up the initial state of the automaton with a single root state
+ * representing an empty string. All other states are effectively uninitialized.
+ */
 void gsa_init() {
     state[0].len = 0;
     state[0].link = -1;
@@ -68,21 +87,33 @@ void gsa_init() {
     last = 0;
 }
 
+/**
+ * @brief Extends the GSA with a new character.
+ * * This function adds a new character `c` to the automaton, effectively appending it
+ * to the string currently represented by the `last` state. It handles the creation
+ * of new states and the update of suffix links, including the "cloning" process
+ * to maintain the automaton's properties.
+ * * @param c The character to be added to the automaton.
+ */
 void gsa_extend(char c) {
     int cur = sz++;
     state[cur].len = state[last].len + 1;
     int p = last;
+    // Traverse suffix links from the last state to find a path for 'c'
     while (p != -1 && state[p].next.find(c) == state[p].next.end()) {
         state[p].next[c] = cur;
         p = state[p].link;
     }
     if (p == -1) {
+        // No path for 'c' found, link to root
         state[cur].link = 0;
     } else {
         int q = state[p].next[c];
         if (state[q].len == state[p].len + 1) {
+            // Path found and is of the correct length, simple link
             state[cur].link = q;
         } else {
+            // Path found but needs a "cloned" state to maintain properties
             int clone = sz++;
             state[clone].len = state[p].len + 1;
             state[clone].next = state[q].next;
@@ -98,6 +129,13 @@ void gsa_extend(char c) {
     last = cur;
 }
 
+/**
+ * @brief Calculates modular exponentiation.
+ * * Computes `(base^exp) % MOD` efficiently using binary exponentiation.
+ * * @param base The base number.
+ * @param exp The exponent.
+ * @return The result of the modular exponentiation.
+ */
 long long power(long long base, long long exp) {
     long long res = 1;
     base %= MOD;
@@ -109,11 +147,19 @@ long long power(long long base, long long exp) {
     return res;
 }
 
+/**
+ * @brief Calculates the modular multiplicative inverse.
+ * * Computes the modular inverse of `n` modulo `MOD` using Fermat's Little Theorem.
+ * This is used for modular division.
+ * * @param n The number to find the inverse of.
+ * @return The modular multiplicative inverse of `n`.
+ */
 long long modInverse(long long n) {
     return power(n, MOD - 2);
 }
 
 int main() {
+    // Set up fast I/O
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(NULL);
 
@@ -121,6 +167,7 @@ int main() {
     std::cin >> n;
     std::vector<std::string> strings(n);
     long long sum_lengths = 0;
+    // Read all strings and calculate their total length
     for (int i = 0; i < n; ++i) {
         std::cin >> strings[i];
         sum_lengths += strings[i].length();
@@ -130,34 +177,41 @@ int main() {
     std::vector<int> end_states(n);
     std::vector<int> cnt_pref(MAX_STATES, 0);
 
+    // Build the GSA for all strings.
+    // We add a unique separator between each string to ensure suffixes do not
+    // cross string boundaries in the automaton's structure.
     for (int i = 0; i < n; ++i) {
         last = 0;
         for (char c : strings[i]) {
             gsa_extend(c);
         }
         end_states[i] = last;
-        // Use a separator to make sure strings don't form a continuous chain
-        // in the automaton's forward path, for correct suffix counting.
         if (i < n - 1) {
              gsa_extend('Z' + 1 + i);
         }
     }
     
-    // Count prefix occurrences
+    // Count prefix occurrences for each state. A state is a prefix of a string
+    // if that string's path from the root goes through the state. We can count
+    // this by simply traversing each string on the automaton and incrementing a counter.
     for (int i = 0; i < n; ++i) {
         int curr = 0;
         for (char c : strings[i]) {
-            curr = state[curr].next[c];
+            curr = state[curr].next.at(c);
             cnt_pref[curr]++;
         }
     }
     
-    // Count suffix occurrences by propagating up suffix links
+    // Count suffix occurrences for each state. A state represents a suffix of a string
+    // if the string ends at a state which has a suffix link path to the current state.
+    // We initialize counts for end-of-string states and propagate them up the suffix links.
     std::vector<int> cnt_suf(sz, 0);
     for (int i = 0; i < n; ++i) {
         cnt_suf[end_states[i]]++;
     }
     
+    // Sort states by length in descending order to correctly propagate counts
+    // up the suffix link tree.
     std::vector<std::pair<int, int>> sorted_states(sz);
     for (int i = 0; i < sz; ++i) {
         sorted_states[i] = {state[i].len, i};
@@ -171,6 +225,11 @@ int main() {
         }
     }
 
+    // Calculate the total sum of overlap lengths for all ordered pairs (including k=l).
+    // The total sum is the sum of contributions from each state in the GSA.
+    // The number of substrings represented by state 'u' is len(u) - len(link(u)).
+    // Each of these substrings appears as a prefix `cnt_pref[u]` times and as a suffix
+    // `cnt_suf[u]` times.
     long long total_sum = 0;
     for (int u = 1; u < sz; ++u) {
         long long len_diff = state[u].len - state[state[u].link].len;
@@ -181,7 +240,9 @@ int main() {
         total_sum = (total_sum + term) % MOD;
     }
     
-    // Subtract the F(s_k, s_k) part for distinct strings
+    // Subtract the F(s_k, s_k) part to get the sum for distinct pairs.
+    // F(s_k, s_k) is the length of the longest proper suffix of s_k that is also a prefix.
+    // This length is given by the length of the longest suffix link from s_k's end state.
     long long diag_sum = 0;
     for (int i = 0; i < n; ++i) {
         int end_state_idx = end_states[i];
@@ -190,7 +251,10 @@ int main() {
         }
     }
     
+    // Compute the final sum for distinct pairs
     long long final_sum = (total_sum - diag_sum + MOD) % MOD;
+    
+    // Calculate the expected cost by dividing the final sum by n
     long long expected_cost = (final_sum * modInverse(n)) % MOD;
 
     std::cout << expected_cost << std::endl;
