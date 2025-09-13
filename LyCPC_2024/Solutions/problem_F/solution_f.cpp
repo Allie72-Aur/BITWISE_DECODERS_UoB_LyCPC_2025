@@ -10,7 +10,7 @@
  * @authors Emad S. Alshkre (polyex9@gmail.com)
  *      and Allie Phenish (alliephenish@gmail.com)
  * @brief Solution to Problem F "Triple Riot" of LyCPC 2024 contest.
- * @details 
+ * @details
  * # Problem Description
  * We are given an array of $n$ numbers and are required to find all their common divisors. The output
  * should be the count of these divisors, followed by the divisors themselves, sorted in increasing order.
@@ -34,67 +34,109 @@
  * large numbers within the time limit.
  */
 
-// Function to find all divisors of a number
-std::vector<long long> get_divisors(long long num) {
+/**
+ * @brief Finds all divisors of a given number.
+ * * This function efficiently computes all divisors of a `long long` number
+ * by iterating only up to its square root.
+ *
+ * @param num The number to find divisors for.
+ * @return A vector of `long long` integers containing all divisors, sorted in
+ * increasing order.
+ */
+std::vector<long long> get_divisors(long long num)
+{
     std::vector<long long> divisors;
     // Iterate from 1 up to the square root of num
-    for (long long i = 1; i * i <= num; ++i) {
-        if (num % i == 0) {
-            divisors.push_back(i);
-            // If i is not the square root of num, then num/i is also a divisor
-            if (i * i != num) {
-                divisors.push_back(num / i);
+    for (long long j = 1; j * j <= num; ++j)
+    {
+        if (num % j == 0)
+        {
+            // j is a divisor
+            divisors.push_back(j);
+            // If j is not the square root of num, then num/j is also a divisor
+            if (j * j != num)
+            {
+                divisors.push_back(num / j);
             }
         }
     }
-    // Sort the divisors in increasing order
+    // Sort the divisors in increasing order for the final output
     std::sort(divisors.begin(), divisors.end());
     return divisors;
 }
 
-// Function to solve a single test case
-void solve() {
+/**
+ * @brief Solves a single test case for the problem.
+ * * This function handles the logical flow for one problem instance. It reads the
+ * input array, calculates the greatest common divisor of all elements, finds
+ * the divisors of the GCD, and prints the result.
+ */
+void solve()
+{
     int n;
     std::cin >> n;
 
-    std::vector<long long> a(n);
+    // Use long long to handle large input numbers up to 10^12
     long long final_gcd = 0;
     bool first_non_zero_found = false;
 
-    for (int i = 0; i < n; ++i) {
-        std::cin >> a[i];
-        if (a[i] != 0) {
-            if (!first_non_zero_found) {
-                final_gcd = a[i];
+    for (int j = 0; j < n; ++j)
+    {
+        long long current_val;
+        std::cin >> current_val;
+
+        // The GCD of a number with 0 is the number itself. We only need to
+        // consider the non-zero numbers to find the GCD of the entire set.
+        if (current_val != 0)
+        {
+            if (!first_non_zero_found)
+            {
+                // Initialize the GCD with the first non-zero number
+                final_gcd = current_val;
                 first_non_zero_found = true;
-            } else {
-                final_gcd = std::gcd(final_gcd, a[i]);
+            }
+            else
+            {
+                // Iteratively compute the GCD with subsequent non-zero numbers
+                final_gcd = std::gcd(final_gcd, current_val);
             }
         }
     }
 
+    // Get all divisors of the final GCD
     std::vector<long long> divisors = get_divisors(final_gcd);
 
+    // Print the number of common divisors
     std::cout << divisors.size() << '\n';
 
-    for (size_t i = 0; i < divisors.size(); ++i) {
-        std::cout << divisors[i] << (i == divisors.size() - 1 ? "" : " ");
+    // Print the divisors separated by spaces
+    for (size_t j = 0; j < divisors.size(); ++j)
+    {
+        std::cout << divisors[j] << (j == divisors.size() - 1 ? "" : " ");
     }
 }
 
-int main(void) {
-    // Fast I/O for competitive programming
+/**
+ * @brief The main function and entry point of the program.
+ *
+ * This function sets up fast I/O, reads the number of test cases, and calls
+ * the `solve()` function for each test case.
+ */
+int main(void)
+{
+    // Set up fast input/output
     std::ios_base::sync_with_stdio(false);
     std::cin.tie(NULL);
     std::cout.tie(NULL);
 
-    int times = 1;
-    std::cin >> times;
+    int num_test_cases = 0;
+    std::cin >> num_test_cases;
 
-    while (times--) {
+    while (num_test_cases--)
+    {
         solve();
         std::cout << '\n';
     }
-    
+
     return 0;
 }
